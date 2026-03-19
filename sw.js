@@ -1,4 +1,4 @@
-const CACHE = "sc-pizza-v1";
+const CACHE = "sc-pizza-v2";
 const ASSETS = [
   "./index.html",
   "./manifest.json"
