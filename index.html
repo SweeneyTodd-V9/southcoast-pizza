@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -124,6 +124,19 @@
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .flex-wrap { display: flex; flex-wrap: wrap; gap: 7px; }
     .summary-pill { background: #fff; border: 1.5px solid #fbd0bc; border-radius: 10px; padding: 12px; }
+  @media print {
+    body { background: #fff !important; overflow: visible !important; height: auto !important; }
+    #root { height: auto !important; display: block !important; }
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .tab-bar { display: none !important; }
+    .header { position: static !important; box-shadow: none !important; border-bottom: 2px solid #e8622a !important; }
+    .scroll-area { overflow: visible !important; padding-bottom: 16px !important; height: auto !important; }
+    .card { box-shadow: none !important; break-inside: avoid; }
+    .card-dark { break-inside: avoid; }
+    .shopping-row { break-inside: avoid; }
+  }
+  .print-only { display: none; }
   </style>
 </head>
 <body>
@@ -570,9 +583,101 @@ function PizzasTab({ pizzas, setPizzas, ings, ingMap, doughCostPerPizza, topping
   );
 }
 
-function ShoppingTab({ dough, dpb, doughTotals, doughCostTotal, doughCostPerPizza, ings, ingTotals, ingMap, pizzas, toppingCostForPizza, toppingsTotalCost, grandTotal, avgCpp, totalPizzas }) {
+function ShoppingTab({ dough, dpb, doughTotals, doughCostTotal, doughCostPerPizza, ings, ingTotals, ingMap, pizzas, toppingCostForPizza, toppingsTotalCost, grandTotal, avgCpp, totalPizzas, serviceName, setServiceName, serviceDate, setServiceDate }) {
+
+  const exportCSV = () => {
+    const label = serviceName || "Service";
+    const date  = serviceDate || new Date().toISOString().slice(0,10);
+    const rows  = [
+      ["South Coast Pizzas — Service Sheet"],
+      [`Service: ${label}`, `Date: ${date}`],
+      [],
+      ["DOUGH"],
+      ["Ingredient", "Per Ball (g)", "Total Needed", "Batch Cost (£)"],
+      ["00 Flour",  fmt(dpb.flour,1), fmtG(doughTotals.flour), fmt(doughTotals.flour*(dough.flourCost/1000),2)],
+      ["Water",     fmt(dpb.water,1), fmtG(doughTotals.water), "—"],
+      ["Sea Salt",  fmt(dpb.salt,1),  fmtG(doughTotals.salt),  fmt(doughTotals.salt*(dough.saltCost/1000),2)],
+      [dough.yeastType==="dry"?"Dry Yeast":"Fresh Yeast", fmt(dpb.yeast,2), fmtG(doughTotals.yeast), fmt(doughTotals.yeast*(dough.yeastCost/100),2)],
+      [`Dough Total`, "", "", fmt(doughCostTotal,2)],
+      [],
+      ["TOPPINGS"],
+      ["Ingredient", "Recipe Unit", "Total Needed", "Unit Cost (£)", "Batch Cost (£)"],
+      ...ings.filter(i=>ingTotals[i.id]>0).map(ing => {
+        const pu=ing.purchaseUnit||ing.unit||"g";
+        const ru=ing.recipeUnit||pu;
+        const cf=convFactor(pu,ru);
+        const uc=ing.purchaseQty>0?(ing.purchaseCost/ing.purchaseQty)/cf:0;
+        const qty=ingTotals[ing.id]||0;
+        return [ing.name, ru, fmt(qty,1), fmt(uc,4), fmt(qty*uc,2)];
+      }),
+      [`Toppings Total`, "", "", "", fmt(toppingsTotalCost,2)],
+      [],
+      ["PIZZAS"],
+      ["Name", "Qty", "Dough/ea (£)", "Toppings/ea (£)", "Total/ea (£)", "Batch Total (£)"],
+      ...pizzas.map(p => {
+        const tc=toppingCostForPizza(p);
+        const ea=doughCostPerPizza+tc;
+        return [p.name, p.count, fmt(doughCostPerPizza,4), fmt(tc,4), fmt(ea,4), fmt(ea*p.count,2)];
+      }),
+      [],
+      ["SUMMARY"],
+      ["Total Pizzas", totalPizzas],
+      ["Ball Weight (g)", dough.ballSize],
+      ["Hydration (%)", dough.hydration],
+      ["Dough Cost (£)", fmt(doughCostTotal,2)],
+      ["Toppings Cost (£)", fmt(toppingsTotalCost,2)],
+      ["Grand Total (£)", fmt(grandTotal,2)],
+      ["Avg Per Pizza (£)", fmt(avgCpp,2)],
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], {type:"text/csv"});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url;
+    a.download = `SCP_${(label).replace(/\s+/g,"_")}_${date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const printSheet = () => window.print();
+
   return (
     <div className="scroll-area fade-in">
+
+      {/* Service label */}
+      <div className="card no-print" style={{marginBottom:14}}>
+        <div className="section-title" style={{marginBottom:12}}>Service Details</div>
+        <div style={{marginBottom:10}}>
+          <label className="label">Service Name</label>
+          <input className="inp" placeholder="e.g. Friday Night, Wedding, Pop-up #4…"
+            value={serviceName} onChange={e=>setServiceName(e.target.value)} />
+        </div>
+        <div style={{marginBottom:14}}>
+          <label className="label">Date</label>
+          <input className="inp" type="date" value={serviceDate} onChange={e=>setServiceDate(e.target.value)} />
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <button className="btn btn-p" style={{flex:1}} onClick={printSheet}>
+            🖨 Save as PDF
+          </button>
+          <button className="btn btn-g" style={{flex:1}} onClick={exportCSV}>
+            ⬇ Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Print header - only shows when printing */}
+      <div className="print-only" style={{marginBottom:20,paddingBottom:12,borderBottom:"2px solid #e8622a"}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:900,color:"#1e293b"}}>🍕 South Coast Pizzas</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#e8622a",letterSpacing:"0.2em",marginTop:4}}>SERVICE SHEET</div>
+        {(serviceName||serviceDate) && (
+          <div style={{marginTop:8,fontFamily:"'DM Mono',monospace",fontSize:13,color:"#1e293b"}}>
+            {serviceName && <span style={{fontWeight:600}}>{serviceName}</span>}
+            {serviceName && serviceDate && <span style={{color:"#94a3b8",margin:"0 8px"}}>·</span>}
+            {serviceDate && <span>{new Date(serviceDate).toLocaleDateString("en-GB",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</span>}
+          </div>
+        )}
+      </div>
 
       {/* Summary chips */}
       <div className="card-dark" style={{marginBottom:14}}>
@@ -719,15 +824,19 @@ function save(key, val) {
 
 function App() {
   const { useEffect } = React;
-  const [tab,    setTab]    = useState("dough");
-  const [dough,  setDough]  = useState(() => load("scp_dough",  INIT_DOUGH));
-  const [ings,   setIngs]   = useState(() => load("scp_ings",   INIT_INGS));
-  const [pizzas, setPizzas] = useState(() => load("scp_pizzas", INIT_PIZZAS));
+  const [tab,         setTab]         = useState("dough");
+  const [dough,       setDough]       = useState(() => load("scp_dough",       INIT_DOUGH));
+  const [ings,        setIngs]        = useState(() => load("scp_ings",        INIT_INGS));
+  const [pizzas,      setPizzas]      = useState(() => load("scp_pizzas",      INIT_PIZZAS));
+  const [serviceName, setServiceName] = useState(() => load("scp_servicename", ""));
+  const [serviceDate, setServiceDate] = useState(() => load("scp_servicedate", new Date().toISOString().slice(0,10)));
 
   // Auto-save whenever data changes
-  useEffect(() => { save("scp_dough",  dough);  }, [dough]);
-  useEffect(() => { save("scp_ings",   ings);   }, [ings]);
-  useEffect(() => { save("scp_pizzas", pizzas); }, [pizzas]);
+  useEffect(() => { save("scp_dough",       dough);       }, [dough]);
+  useEffect(() => { save("scp_ings",        ings);        }, [ings]);
+  useEffect(() => { save("scp_pizzas",      pizzas);      }, [pizzas]);
+  useEffect(() => { save("scp_servicename", serviceName); }, [serviceName]);
+  useEffect(() => { save("scp_servicedate", serviceDate); }, [serviceDate]);
 
   const dpb = useMemo(() => calcDoughPerBall(dough), [dough]);
   const totalPizzas = useMemo(() => pizzas.reduce((s,p)=>s+Math.max(0,+p.count||0),0),[pizzas]);
@@ -817,7 +926,7 @@ function App() {
         {tab==="dough" && <DoughTab dough={dough} setDough={setDough} dpb={dpb} doughTotals={doughTotals} doughCostTotal={doughCostTotal} doughCostPerPizza={doughCostPerPizza} totalPizzas={totalPizzas} />}
         {tab==="ingredients" && <IngredientsTab ings={ings} setIngs={setIngs} ingTotals={ingTotals} ingMap={ingMap} />}
         {tab==="pizzas" && <PizzasTab pizzas={pizzas} setPizzas={setPizzas} ings={ings} ingMap={ingMap} doughCostPerPizza={doughCostPerPizza} toppingCostForPizza={toppingCostForPizza} />}
-        {tab==="shopping" && <ShoppingTab dough={dough} dpb={dpb} doughTotals={doughTotals} doughCostTotal={doughCostTotal} doughCostPerPizza={doughCostPerPizza} ings={ings} ingTotals={ingTotals} ingMap={ingMap} pizzas={pizzas} toppingCostForPizza={toppingCostForPizza} toppingsTotalCost={toppingsTotalCost} grandTotal={grandTotal} avgCpp={avgCpp} totalPizzas={totalPizzas} />}
+        {tab==="shopping" && <ShoppingTab dough={dough} dpb={dpb} doughTotals={doughTotals} doughCostTotal={doughCostTotal} doughCostPerPizza={doughCostPerPizza} ings={ings} ingTotals={ingTotals} ingMap={ingMap} pizzas={pizzas} toppingCostForPizza={toppingCostForPizza} toppingsTotalCost={toppingsTotalCost} grandTotal={grandTotal} avgCpp={avgCpp} totalPizzas={totalPizzas} serviceName={serviceName} setServiceName={setServiceName} serviceDate={serviceDate} setServiceDate={setServiceDate} />}
       </div>
 
       {/* Bottom tab bar */}
