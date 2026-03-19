@@ -15,8 +15,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body, #root { height: 100%; }
-    body { background: #f7f8fa; font-family: Georgia, serif; -webkit-tap-highlight-color: transparent; }
+    html { height: 100%; }
+    body { height: 100%; height: 100dvh; background: #f7f8fa; font-family: Georgia, serif; -webkit-tap-highlight-color: transparent; overflow: hidden; overscroll-behavior: none; }
+    #root { height: 100%; height: 100dvh; display: flex; flex-direction: column; }
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -61,10 +62,10 @@
     .pill.active { background: #e8622a; color: #fff; border-color: #e8622a; }
 
     .tab-bar {
-      position: fixed; bottom: 0; left: 0; right: 0;
+      flex-shrink: 0;
       background: #fff; border-top: 1.5px solid #e8edf3;
       display: flex; padding-bottom: env(safe-area-inset-bottom);
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.08); z-index: 100;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
     }
     .tab-btn {
       flex: 1; background: transparent; border: none;
@@ -78,16 +79,17 @@
     .tab-btn.active .tab-icon { filter: drop-shadow(0 0 4px rgba(232,98,42,0.4)); }
 
     .header {
-      position: sticky; top: 0; z-index: 50;
+      flex-shrink: 0;
       background: #fff; border-bottom: 1.5px solid #e8edf3;
       padding: 14px 16px 12px;
+      padding-top: calc(14px + env(safe-area-inset-top));
       box-shadow: 0 2px 10px rgba(0,0,0,0.06);
     }
     .header-top { display: flex; justify-content: space-between; align-items: center; }
     .header-stats { display: flex; gap: 18px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9; }
     .stat-chip { flex: 1; text-align: center; }
 
-    .scroll-area { overflow-y: auto; padding: 16px 14px; padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+    .scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 14px 24px; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
 
     .divider { border: none; border-top: 1.5px solid #f1f5f9; margin: 14px 0; }
     .section-title { font-family:'Playfair Display',Georgia,serif; font-size:18px; font-weight:700; color:#1e293b; margin-bottom:14px; }
@@ -651,11 +653,26 @@ function ShoppingTab({ dough, dpb, doughTotals, doughCostTotal, doughCostPerPizz
 }
 
 // ── Main App ──────────────────────────────────────────────────────────────────
+// ── Persistence helpers ──────────────────────────────────────────────────────
+function load(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e) { return fallback; }
+}
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+
 function App() {
+  const { useEffect } = React;
   const [tab,    setTab]    = useState("dough");
-  const [dough,  setDough]  = useState(INIT_DOUGH);
-  const [ings,   setIngs]   = useState(INIT_INGS);
-  const [pizzas, setPizzas] = useState(INIT_PIZZAS);
+  const [dough,  setDough]  = useState(() => load("scp_dough",  INIT_DOUGH));
+  const [ings,   setIngs]   = useState(() => load("scp_ings",   INIT_INGS));
+  const [pizzas, setPizzas] = useState(() => load("scp_pizzas", INIT_PIZZAS));
+
+  // Auto-save whenever data changes
+  useEffect(() => { save("scp_dough",  dough);  }, [dough]);
+  useEffect(() => { save("scp_ings",   ings);   }, [ings]);
+  useEffect(() => { save("scp_pizzas", pizzas); }, [pizzas]);
 
   const dpb = useMemo(() => calcDoughPerBall(dough), [dough]);
   const totalPizzas = useMemo(() => pizzas.reduce((s,p)=>s+Math.max(0,+p.count||0),0),[pizzas]);
@@ -702,7 +719,7 @@ function App() {
   ];
 
   return (
-    <div style={{height:"100vh",display:"flex",flexDirection:"column",background:"#f7f8fa"}}>
+    <div style={{display:"contents"}}>
       {/* Header */}
       <div className="header">
         <div className="header-top">
@@ -713,6 +730,12 @@ function App() {
           <div style={{textAlign:"right"}}>
             <div className="mono" style={{fontSize:9,color:T3,letterSpacing:"0.1em"}}>TOTAL COST</div>
             <div className="serif" style={{fontSize:24,fontWeight:700,color:A,lineHeight:1.1}}>{quid(grandTotal)}</div>
+            <button
+              className="mono"
+              style={{fontSize:9,color:T3,background:"none",border:"none",cursor:"pointer",marginTop:4,textDecoration:"underline",padding:0}}
+              onClick={() => { if(window.confirm("Reset everything to defaults?")) { setDough(INIT_DOUGH); setIngs(INIT_INGS); setPizzas(INIT_PIZZAS); ["scp_dough","scp_ings","scp_pizzas"].forEach(k=>localStorage.removeItem(k)); } }}>
+              reset all
+            </button>
           </div>
         </div>
         <div className="header-stats">
@@ -731,7 +754,7 @@ function App() {
       </div>
 
       {/* Content */}
-      <div style={{flex:1,overflow:"hidden",position:"relative"}}>
+      <div style={{flex:1,overflow:"hidden",minHeight:0,display:"flex",flexDirection:"column"}}>
         {tab==="dough" && <DoughTab dough={dough} setDough={setDough} dpb={dpb} doughTotals={doughTotals} doughCostTotal={doughCostTotal} doughCostPerPizza={doughCostPerPizza} totalPizzas={totalPizzas} />}
         {tab==="ingredients" && <IngredientsTab ings={ings} setIngs={setIngs} ingTotals={ingTotals} ingMap={ingMap} />}
         {tab==="pizzas" && <PizzasTab pizzas={pizzas} setPizzas={setPizzas} ings={ings} ingMap={ingMap} doughCostPerPizza={doughCostPerPizza} toppingCostForPizza={toppingCostForPizza} />}
