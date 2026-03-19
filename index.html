@@ -152,6 +152,24 @@ const BALL_PRESETS = [
 
 const UNITS = ["g","kg","ml","L","pc","leaves","tsp","tbsp","cup","oz","lb","slice"];
 
+// How many recipeUnits are in one purchaseUnit?
+// e.g. 1 kg = 1000 g  →  convFactor("kg","g") = 1000
+// costPerRecipeUnit = (purchaseCost / purchaseQty) / convFactor
+function convFactor(purchaseUnit, recipeUnit) {
+  if (purchaseUnit === recipeUnit) return 1;
+  const pairs = {
+    "kg:g": 1000,  "g:kg": 0.001,
+    "L:ml": 1000,  "ml:L": 0.001,
+    "lb:oz": 16,   "oz:lb": 0.0625,
+  };
+  return pairs[purchaseUnit + ":" + recipeUnit] || 1;
+}
+
+// Sensible default recipe unit given a purchase unit
+function defaultRecipeUnit(purchaseUnit) {
+  return { kg:"g", L:"ml", lb:"oz" }[purchaseUnit] || purchaseUnit;
+}
+
 let _iid = 10, _pid = 10;
 
 function calcDoughPerBall({ hydration, ballSize, saltPct, yeastPct }) {
@@ -163,11 +181,11 @@ function calcDoughPerBall({ hydration, ballSize, saltPct, yeastPct }) {
 const INIT_DOUGH = { hydration:62, ballSize:280, saltPct:2.8, yeastType:"dry", yeastPct:0.1, flourCost:1.20, saltCost:0.50, yeastCost:3.00 };
 
 const INIT_INGS = [
-  { id:1, name:"San Marzano Tomatoes",     unit:"g",      purchaseQty:400,  purchaseCost:2.50 },
-  { id:2, name:"Fior di Latte Mozzarella", unit:"g",      purchaseQty:250,  purchaseCost:4.00 },
-  { id:3, name:"Fresh Basil",              unit:"leaves", purchaseQty:20,   purchaseCost:1.50 },
-  { id:4, name:"Extra Virgin Olive Oil",   unit:"ml",     purchaseQty:750,  purchaseCost:9.00 },
-  { id:5, name:"Pepperoni",                unit:"g",      purchaseQty:200,  purchaseCost:5.00 },
+  { id:1, name:"San Marzano Tomatoes",     purchaseUnit:"g",      recipeUnit:"g",      purchaseQty:400,  purchaseCost:2.50 },
+  { id:2, name:"Fior di Latte Mozzarella", purchaseUnit:"g",      recipeUnit:"g",      purchaseQty:250,  purchaseCost:4.00 },
+  { id:3, name:"Fresh Basil",              purchaseUnit:"leaves", recipeUnit:"leaves", purchaseQty:20,   purchaseCost:1.50 },
+  { id:4, name:"Extra Virgin Olive Oil",   purchaseUnit:"ml",     recipeUnit:"ml",     purchaseQty:750,  purchaseCost:9.00 },
+  { id:5, name:"Pepperoni",                purchaseUnit:"g",      recipeUnit:"g",      purchaseQty:200,  purchaseCost:5.00 },
 ];
 
 const INIT_PIZZAS = [
@@ -317,14 +335,14 @@ function DoughTab({ dough, setDough, dpb, doughTotals, doughCostTotal, doughCost
 
 function IngredientsTab({ ings, setIngs, ingTotals, ingMap }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [n, setN] = useState({name:"",unit:"g",purchaseQty:"",purchaseCost:""});
+  const [n, setN] = useState({name:"",purchaseUnit:"g",recipeUnit:"g",purchaseQty:"",purchaseCost:""});
 
   const add = () => {
     if (!n.name.trim() || !n.purchaseQty || !n.purchaseCost) return;
     setIngs(p => [...p,{...n,id:_iid++,purchaseQty:+n.purchaseQty,purchaseCost:+n.purchaseCost}]);
-    setN({name:"",unit:"g",purchaseQty:"",purchaseCost:""}); setShowAdd(false);
+    setN({name:"",purchaseUnit:"g",recipeUnit:"g",purchaseQty:"",purchaseCost:""}); setShowAdd(false);
   };
-  const upd = (id,f,v) => setIngs(p => p.map(i => i.id!==id?i:{...i,[f]:["name","unit"].includes(f)?v:+v}));
+  const upd = (id,f,v) => setIngs(p => p.map(i => i.id!==id?i:{...i,[f]:["name","purchaseUnit","recipeUnit"].includes(f)?v:+v}));
   const del = (id) => setIngs(p => p.filter(i => i.id!==id));
 
   return (
@@ -344,25 +362,39 @@ function IngredientsTab({ ings, setIngs, ingTotals, ingMap }) {
           </div>
           <div className="grid-2" style={{marginBottom:10}}>
             <div>
-              <label className="label">Unit</label>
-              <select className="inp" value={n.unit} onChange={e => setN(x=>({...x,unit:e.target.value}))}>
+              <label className="label">Buy in (purchase unit)</label>
+              <select className="inp" value={n.purchaseUnit} onChange={e => {
+                const pu = e.target.value;
+                setN(x=>({...x, purchaseUnit:pu, recipeUnit:defaultRecipeUnit(pu)}));
+              }}>
                 {UNITS.map(u=><option key={u}>{u}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Qty Bought</label>
-              <input className="inp" type="number" placeholder="250" value={n.purchaseQty}
-                onChange={e => setN(x=>({...x,purchaseQty:e.target.value}))} />
+              <label className="label">Use in recipes</label>
+              <select className="inp" value={n.recipeUnit} onChange={e => setN(x=>({...x,recipeUnit:e.target.value}))}>
+                {UNITS.map(u=><option key={u}>{u}</option>)}
+              </select>
             </div>
           </div>
-          <div style={{marginBottom:12}}>
-            <label className="label">Cost Paid (£)</label>
-            <input className="inp" type="number" placeholder="4.50" step={0.01} value={n.purchaseCost}
-              onChange={e => setN(x=>({...x,purchaseCost:e.target.value}))} />
+          <div className="grid-2" style={{marginBottom:10}}>
+            <div>
+              <label className="label">Qty Bought</label>
+              <input className="inp" type="number" placeholder="e.g. 1" value={n.purchaseQty}
+                onChange={e => setN(x=>({...x,purchaseQty:e.target.value}))} />
+            </div>
+            <div>
+              <label className="label">Cost Paid (£)</label>
+              <input className="inp" type="number" placeholder="4.50" step={0.01} value={n.purchaseCost}
+                onChange={e => setN(x=>({...x,purchaseCost:e.target.value}))} />
+            </div>
           </div>
           {n.purchaseQty && n.purchaseCost && (
             <div className="mono" style={{fontSize:11,color:T2,marginBottom:12}}>
-              → <strong style={{color:A}}>£{(n.purchaseCost/n.purchaseQty).toFixed(4)} per {n.unit}</strong>
+              → <strong style={{color:A}}>
+                £{((n.purchaseCost/n.purchaseQty)/convFactor(n.purchaseUnit,n.recipeUnit)).toFixed(4)} per {n.recipeUnit}
+              </strong>
+              {n.purchaseUnit!==n.recipeUnit && <span style={{color:T3}}> (bought per {n.purchaseUnit})</span>}
             </div>
           )}
           <div className="row">
@@ -373,7 +405,10 @@ function IngredientsTab({ ings, setIngs, ingTotals, ingMap }) {
       )}
 
       {ings.map(ing => {
-        const uc = ing.purchaseQty > 0 ? ing.purchaseCost / ing.purchaseQty : 0;
+        const pu = ing.purchaseUnit || ing.unit || "g";
+        const ru = ing.recipeUnit   || pu;
+        const cf = convFactor(pu, ru);
+        const costPerRecipeUnit = ing.purchaseQty > 0 ? (ing.purchaseCost / ing.purchaseQty) / cf : 0;
         const usedQty = ingTotals[ing.id] || 0;
         return (
           <div key={ing.id} className="card" style={{padding:"14px"}}>
@@ -384,27 +419,41 @@ function IngredientsTab({ ings, setIngs, ingTotals, ingMap }) {
             </div>
             <div className="grid-2" style={{marginBottom:10}}>
               <div>
-                <label className="label">Unit</label>
-                <select className="inp" value={ing.unit} onChange={e => upd(ing.id,"unit",e.target.value)}>
+                <label className="label">Buy in</label>
+                <select className="inp" value={pu} onChange={e => {
+                  upd(ing.id,"purchaseUnit",e.target.value);
+                  upd(ing.id,"recipeUnit", defaultRecipeUnit(e.target.value));
+                }}>
                   {UNITS.map(u=><option key={u}>{u}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">Qty Bought</label>
+                <label className="label">Recipe unit</label>
+                <select className="inp" value={ru} onChange={e => upd(ing.id,"recipeUnit",e.target.value)}>
+                  {UNITS.map(u=><option key={u}>{u}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid-2" style={{marginBottom:10}}>
+              <div>
+                <label className="label">Qty Bought ({pu})</label>
                 <input className="inp" type="number" value={ing.purchaseQty}
                   onChange={e => upd(ing.id,"purchaseQty",e.target.value)} />
               </div>
-            </div>
-            <div style={{marginBottom:10}}>
-              <label className="label">Cost Paid (£)</label>
-              <input className="inp" type="number" value={ing.purchaseCost} step={0.01}
-                onChange={e => upd(ing.id,"purchaseCost",e.target.value)} />
+              <div>
+                <label className="label">Cost Paid (£)</label>
+                <input className="inp" type="number" value={ing.purchaseCost} step={0.01}
+                  onChange={e => upd(ing.id,"purchaseCost",e.target.value)} />
+              </div>
             </div>
             <div className="row-between">
-              <span className="cpu-badge">£{uc.toFixed(4)} / {ing.unit}</span>
+              <span className="cpu-badge">£{costPerRecipeUnit.toFixed(4)} / {ru}</span>
+              {pu !== ru && (
+                <span className="mono" style={{fontSize:10,color:T3}}>bought per {pu}</span>
+              )}
               {usedQty > 0 && (
                 <span className="mono" style={{fontSize:11,color:T2}}>
-                  Used: {fmt(usedQty)} {ing.unit} · {quid(usedQty*uc)}
+                  Used: {fmt(usedQty)} {ru} · {quid(usedQty*costPerRecipeUnit)}
                 </span>
               )}
             </div>
@@ -484,7 +533,10 @@ function PizzasTab({ pizzas, setPizzas, ings, ingMap, doughCostPerPizza, topping
                 {ings.map(ing => {
                   const entry = pizza.toppings.find(t=>t.iid===ing.id);
                   const checked = !!entry;
-                  const uc = ing.purchaseQty>0?ing.purchaseCost/ing.purchaseQty:0;
+                  const pu = ing.purchaseUnit || ing.unit || "g";
+                  const ru = ing.recipeUnit   || pu;
+                  const cf = convFactor(pu, ru);
+                  const uc = ing.purchaseQty>0?(ing.purchaseCost/ing.purchaseQty)/cf:0;
                   return (
                     <div key={ing.id} style={{paddingBottom:10,marginBottom:10,borderBottom:"1px solid #f1f5f9"}}>
                       <div className="row" style={{marginBottom:checked?8:0}}>
@@ -495,7 +547,7 @@ function PizzasTab({ pizzas, setPizzas, ings, ingMap, doughCostPerPizza, topping
                         <div className="row" style={{paddingLeft:26}}>
                           <input className="inp" type="number" value={entry.qty} style={{width:80}}
                             onChange={e=>setTQty(pizza.id,ing.id,e.target.value)} />
-                          <span className="mono" style={{fontSize:11,color:T3}}>{ing.unit}</span>
+                          <span className="mono" style={{fontSize:11,color:T3}}>{ru}</span>
                           <span className="mono" style={{fontSize:11,color:T2,marginLeft:"auto"}}>{quid(uc*entry.qty)} / ea</span>
                         </div>
                       )}
@@ -601,15 +653,18 @@ function ShoppingTab({ dough, dpb, doughTotals, doughCostTotal, doughCostPerPizz
           : <>
             {ings.filter(ing=>ingTotals[ing.id]>0).map(ing=>{
               const qty=ingTotals[ing.id]||0;
-              const uc=ing.purchaseQty>0?ing.purchaseCost/ing.purchaseQty:0;
+              const pu=ing.purchaseUnit||ing.unit||"g";
+              const ru=ing.recipeUnit||pu;
+              const cf=convFactor(pu,ru);
+              const uc=ing.purchaseQty>0?(ing.purchaseCost/ing.purchaseQty)/cf:0;
               return (
                 <div key={ing.id} className="shopping-row">
                   <div className="row-between" style={{marginBottom:4}}>
                     <span className="mono" style={{fontSize:13,color:T,fontWeight:500}}>{ing.name}</span>
-                    <span className="mono" style={{fontSize:14,color:T,fontWeight:600}}>{fmt(qty)} {ing.unit}</span>
+                    <span className="mono" style={{fontSize:14,color:T,fontWeight:600}}>{fmt(qty)} {ru}</span>
                   </div>
                   <div className="row-between">
-                    <span className="mono" style={{fontSize:10,color:T3}}>£{uc.toFixed(4)} / {ing.unit}</span>
+                    <span className="mono" style={{fontSize:10,color:T3}}>£{uc.toFixed(4)} / {ru}</span>
                     <span className="mono" style={{fontSize:12,color:A,fontWeight:500}}>{quid(qty*uc)}</span>
                   </div>
                 </div>
@@ -688,7 +743,11 @@ function App() {
   const doughCostPerPizza = totalPizzas>0?doughCostTotal/totalPizzas:0;
 
   const ingMap = useMemo(() =>
-    Object.fromEntries(ings.map(i=>[i.id,{...i,unitCost:i.purchaseQty>0?i.purchaseCost/i.purchaseQty:0}])),
+    Object.fromEntries(ings.map(i => {
+      const cf = convFactor(i.purchaseUnit || i.unit || "g", i.recipeUnit || i.purchaseUnit || i.unit || "g");
+      const unitCost = i.purchaseQty > 0 ? (i.purchaseCost / i.purchaseQty) / cf : 0;
+      return [i.id, { ...i, unitCost }];
+    })),
   [ings]);
 
   const ingTotals = useMemo(() => {
