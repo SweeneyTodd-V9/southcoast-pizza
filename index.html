@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#e8622a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="SC Pizzas" />
+  <title>South Coast Pizzas</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; }
+    body { background: #f7f8fa; font-family: Georgia, serif; -webkit-tap-highlight-color: transparent; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input[type=number] { -moz-appearance: textfield; }
+    input[type=checkbox] { accent-color: #e8622a; width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; }
+
+    .inp {
+      background: #fff; border: 1.5px solid #e2e8f0; color: #1e293b;
+      padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 14px;
+      border-radius: 8px; width: 100%; transition: border 0.2s, box-shadow 0.2s; outline: none;
+      -webkit-appearance: none;
+    }
+    .inp:focus { border-color: #e8622a; box-shadow: 0 0 0 3px rgba(232,98,42,0.12); }
+    .inp::placeholder { color: #cbd5e1; }
+    select.inp { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; -webkit-appearance: none; }
+    select.inp option { background: #fff; color: #1e293b; }
+
+    .btn {
+      cursor: pointer; border: none; font-family: 'DM Mono', monospace;
+      font-size: 13px; border-radius: 8px; padding: 11px 18px;
+      transition: all 0.18s; font-weight: 500; letter-spacing: 0.04em; white-space: nowrap;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
+    .btn-p { background: #e8622a; color: #fff; }
+    .btn-p:active { background: #c4501e; transform: scale(0.97); }
+    .btn-g { background: transparent; color: #e8622a; border: 1.5px solid #fbd0bc; }
+    .btn-g:active { background: #fff5f0; }
+    .btn-d { background: transparent; color: #dc2626; border: 1.5px solid #fecaca; font-size: 12px; padding: 8px 12px; }
+    .btn-d:active { background: #fef2f2; }
+    .btn-xs { padding: 6px 10px; font-size: 11px; border-radius: 6px; }
+
+    .card { background: #fff; border: 1.5px solid #e8edf3; border-radius: 14px; padding: 18px; box-shadow: 0 1px 6px rgba(0,0,0,0.05); margin-bottom: 14px; }
+    .card-dark { background: #fff8f5; border: 1.5px solid #fbd0bc; border-radius: 14px; padding: 18px; }
+
+    .label { font-family: 'DM Mono', monospace; font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.13em; display: block; margin-bottom: 6px; }
+    .mono  { font-family: 'DM Mono', monospace; }
+    .serif { font-family: 'Playfair Display', Georgia, serif; }
+
+    .pill { cursor: pointer; padding: 8px 14px; border-radius: 20px; font-family: 'DM Mono', monospace; font-size: 12px; border: 1.5px solid #e2e8f0; background: #f8fafc; color: #64748b; transition: all 0.18s; touch-action: manipulation; }
+    .pill.active { background: #e8622a; color: #fff; border-color: #e8622a; }
+
+    .tab-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1.5px solid #e8edf3;
+      display: flex; padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.08); z-index: 100;
+    }
+    .tab-btn {
+      flex: 1; background: transparent; border: none;
+      padding: 10px 4px 8px; cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; gap: 3px; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-btn .tab-icon { font-size: 20px; line-height: 1; }
+    .tab-btn .tab-label { font-family: 'DM Mono', monospace; font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+    .tab-btn.active .tab-label { color: #e8622a; }
+    .tab-btn.active .tab-icon { filter: drop-shadow(0 0 4px rgba(232,98,42,0.4)); }
+
+    .header {
+      position: sticky; top: 0; z-index: 50;
+      background: #fff; border-bottom: 1.5px solid #e8edf3;
+      padding: 14px 16px 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; }
+    .header-stats { display: flex; gap: 18px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9; }
+    .stat-chip { flex: 1; text-align: center; }
+
+    .scroll-area { overflow-y: auto; padding: 16px 14px; padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+
+    .divider { border: none; border-top: 1.5px solid #f1f5f9; margin: 14px 0; }
+    .section-title { font-family:'Playfair Display',Georgia,serif; font-size:18px; font-weight:700; color:#1e293b; margin-bottom:14px; }
+    .stat-box { background:#f8fafc; border:1.5px solid #e8edf3; border-radius:10px; padding:12px; text-align:center; }
+
+    .bar-track { height:5px; background:#f1f5f9; border-radius:3px; margin-top:5px; overflow:hidden; }
+    .bar-fill  { height:100%; border-radius:3px; transition:width 0.5s ease; }
+
+    .add-form { background:#fff8f5; border:1.5px dashed #fbd0bc; border-radius:10px; padding:14px; margin-bottom:14px; }
+
+    .pizza-card { border:1.5px solid #e8edf3; border-radius:12px; overflow:hidden; margin-bottom:12px; transition:border-color 0.2s; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+    .pizza-card.open { border-color:#e8622a55; }
+    .pizza-header { display:flex; align-items:center; gap:10px; padding:14px; background:#fafbfc; }
+
+    .ing-row { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; }
+    .ing-row:last-child { border-bottom: none; }
+
+    .shopping-row { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; }
+    .shopping-row:last-child { border-bottom: none; }
+
+    .cpu-badge { background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:6px; padding:5px 10px; font-family:'DM Mono',monospace; font-size:11px; color:#64748b; }
+
+    .note { font-family:'DM Mono',monospace; font-size:10px; color:#94a3b8; margin-top:4px; }
+    .row { display: flex; align-items: center; gap: 10px; }
+    .row-between { display: flex; justify-content: space-between; align-items: center; }
+
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+    .fade-in { animation:fadeIn 0.2s ease forwards; }
+    @keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
+    .slide-down { animation:slideDown 0.18s ease forwards; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .flex-wrap { display: flex; flex-wrap: wrap; gap: 7px; }
+    .summary-pill { background: #fff; border: 1.5px solid #fbd0bc; border-radius: 10px; padding: 12px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useMemo, useCallback } = React;
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+const HYDRATION_PRESETS = [
+  { pct: 55, note: "Crisp, traditional" },
+  { pct: 58, note: "STG lower" },
+  { pct: 60, note: "STG classic" },
+  { pct: 62, note: "STG upper" },
+  { pct: 65, note: "Airy crumb" },
+  { pct: 68, note: "High hydration" },
+  { pct: 70, note: "Expert level" },
+];
+
+const BALL_PRESETS = [
+  { g: 220, label: "Mini" }, { g: 270, label: "STG" },
+  { g: 280, label: "Classic" }, { g: 320, label: "Large" },
+];
+
+const UNITS = ["g","kg","ml","L","pc","leaves","tsp","tbsp","cup","oz","lb","slice"];
+
+let _iid = 10, _pid = 10;
+
+function calcDoughPerBall({ hydration, ballSize, saltPct, yeastPct }) {
+  const h = hydration/100, s = saltPct/100, y = yeastPct/100;
+  const flour = ballSize / (1 + h + s + y);
+  return { flour, water: flour*h, salt: flour*s, yeast: flour*y };
+}
+
+const INIT_DOUGH = { hydration:62, ballSize:280, saltPct:2.8, yeastType:"dry", yeastPct:0.1, flourCost:1.20, saltCost:0.50, yeastCost:3.00 };
+
+const INIT_INGS = [
+  { id:1, name:"San Marzano Tomatoes",     unit:"g",      purchaseQty:400,  purchaseCost:2.50 },
+  { id:2, name:"Fior di Latte Mozzarella", unit:"g",      purchaseQty:250,  purchaseCost:4.00 },
+  { id:3, name:"Fresh Basil",              unit:"leaves", purchaseQty:20,   purchaseCost:1.50 },
+  { id:4, name:"Extra Virgin Olive Oil",   unit:"ml",     purchaseQty:750,  purchaseCost:9.00 },
+  { id:5, name:"Pepperoni",                unit:"g",      purchaseQty:200,  purchaseCost:5.00 },
+];
+
+const INIT_PIZZAS = [
+  { id:1, name:"Margherita", count:5, toppings:[{iid:1,qty:80},{iid:2,qty:100},{iid:3,qty:5},{iid:4,qty:10}] },
+  { id:2, name:"Diavola",    count:3, toppings:[{iid:1,qty:80},{iid:2,qty:90},{iid:5,qty:60},{iid:4,qty:10}] },
+];
+
+const fmt  = (v, d=1) => Number(v).toFixed(d);
+const quid = v => `£${Number(v).toFixed(2)}`;
+const fmtG = v => v >= 1000 ? `${fmt(v/1000,2)} kg` : `${fmt(v,1)} g`;
+
+const A="#e8622a", T="#1e293b", T2="#64748b", T3="#94a3b8";
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function DoughTab({ dough, setDough, dpb, doughTotals, doughCostTotal, doughCostPerPizza, totalPizzas }) {
+  const sd = (f,v) => setDough(d => ({...d,[f]:v}));
+  return (
+    <div className="scroll-area fade-in">
+      <div className="card">
+        <div className="section-title">Hydration</div>
+        <div className="flex-wrap" style={{marginBottom:12}}>
+          {HYDRATION_PRESETS.map(({pct,note}) => (
+            <button key={pct} className={`pill ${dough.hydration===pct?"active":""}`}
+              onClick={() => sd("hydration",pct)} title={note}>{pct}%</button>
+          ))}
+        </div>
+        <label className="label">Custom %</label>
+        <div className="row">
+          <input className="inp" type="number" value={dough.hydration} min={50} max={85}
+            onChange={e => sd("hydration",+e.target.value)} style={{width:90}} />
+          <span className="mono" style={{fontSize:11,color:T2}}>
+            {dough.hydration<=58?"Stiffer · crispier":dough.hydration<=63?"✓ Classic STG range":dough.hydration<=68?"Open crumb":"⚠ Expert only"}
+          </span>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="section-title">Ball Size & Salt</div>
+        <label className="label">Dough Ball Weight</label>
+        <div className="row" style={{marginBottom:10}}>
+          <input className="inp" type="number" value={dough.ballSize} min={150} max={450}
+            onChange={e => sd("ballSize",+e.target.value)} style={{width:100}} />
+          <span className="mono" style={{fontSize:13,color:T3}}>g</span>
+        </div>
+        <div className="flex-wrap" style={{marginBottom:18}}>
+          {BALL_PRESETS.map(({g,label}) => (
+            <button key={g} className={`pill ${dough.ballSize===g?"active":""}`}
+              style={{fontSize:11,padding:"6px 10px"}} onClick={() => sd("ballSize",g)}>{label} {g}g</button>
+          ))}
+        </div>
+        <label className="label">Salt (% of flour)</label>
+        <div className="row">
+          <input className="inp" type="number" value={dough.saltPct} min={1} max={5} step={0.1}
+            onChange={e => sd("saltPct",+e.target.value)} style={{width:90}} />
+          <span className="mono" style={{fontSize:13,color:T3}}>%</span>
+          <span className="note" style={{marginTop:0}}>Neapolitan: 2.5–3.0%</span>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="section-title">Yeast</div>
+        <div className="flex-wrap" style={{marginBottom:12}}>
+          {[["dry","Dry / Instant"],["fresh","Fresh / Cake"]].map(([t,l]) => (
+            <button key={t} className={`pill ${dough.yeastType===t?"active":""}`} onClick={() => sd("yeastType",t)}>{l}</button>
+          ))}
+        </div>
+        <label className="label">% of flour</label>
+        <div className="row">
+          <input className="inp" type="number" value={dough.yeastPct} min={0.01} max={3} step={0.01}
+            onChange={e => sd("yeastPct",+e.target.value)} style={{width:90}} />
+          <div className="note" style={{marginTop:0}}>
+            {dough.yeastType==="dry"?"0.05–0.1% cold proof · 0.1–0.3% room temp":"0.1–0.3% long ferment · up to 1% same-day"}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="section-title">Dough Ingredient Costs</div>
+        <div style={{marginBottom:12}}>
+          <label className="label">Flour (£ / kg)</label>
+          <input className="inp" type="number" value={dough.flourCost} step={0.01} onChange={e => sd("flourCost",+e.target.value)} />
+        </div>
+        <div style={{marginBottom:12}}>
+          <label className="label">Fine Salt (£ / kg)</label>
+          <input className="inp" type="number" value={dough.saltCost} step={0.01} onChange={e => sd("saltCost",+e.target.value)} />
+        </div>
+        <div>
+          <label className="label">{dough.yeastType==="dry"?"Dry":"Fresh"} Yeast (£ / 100g)</label>
+          <input className="inp" type="number" value={dough.yeastCost} step={0.01} onChange={e => sd("yeastCost",+e.target.value)} />
+        </div>
+      </div>
+
+      <div className="card-dark">
+        <div style={{color:A,fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,marginBottom:14}}>
+          Per Ball — {dough.ballSize}g
+        </div>
+        {[
+          {label:"00 Flour", val:dpb.flour, color:"#1e293b"},
+          {label:"Water",    val:dpb.water, color:"#3b82f6"},
+          {label:"Sea Salt", val:dpb.salt,  color:"#f59e0b"},
+          {label:dough.yeastType==="dry"?"Dry Yeast":"Fresh Yeast", val:dpb.yeast, color:"#22c55e"},
+        ].map(({label,val,color}) => (
+          <div key={label} style={{marginBottom:12}}>
+            <div className="row-between" style={{marginBottom:4}}>
+              <span className="mono" style={{fontSize:11,color:T2}}>{label}</span>
+              <div>
+                <span className="mono" style={{fontSize:14,color,fontWeight:600}}>{fmtG(val)}</span>
+                <span className="mono" style={{fontSize:10,color:T3,marginLeft:5}}>({((val/dough.ballSize)*100).toFixed(1)}%)</span>
+              </div>
+            </div>
+            <div className="bar-track"><div className="bar-fill" style={{width:`${(val/dough.ballSize)*100}%`,background:color,opacity:0.75}} /></div>
+          </div>
+        ))}
+        <div className="divider" />
+        <div className="row-between" style={{marginBottom:8}}>
+          <span className="mono" style={{fontSize:11,color:T3}}>Hydration (baker's %)</span>
+          <span className="mono" style={{fontSize:13,color:A,fontWeight:600}}>{dough.hydration}%</span>
+        </div>
+        <div className="row-between">
+          <span className="mono" style={{fontSize:11,color:T3}}>Dough cost / pizza</span>
+          <span className="mono" style={{fontSize:13,color:A,fontWeight:600}}>{quid(doughCostPerPizza)}</span>
+        </div>
+        {totalPizzas > 0 && <>
+          <div className="divider" />
+          <div className="mono" style={{fontSize:9,color:T3,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>Batch ({totalPizzas} pizzas)</div>
+          {[
+            ["00 Flour",fmtG(doughTotals.flour),"#1e293b"],
+            ["Water",   fmtG(doughTotals.water),"#3b82f6"],
+            ["Sea Salt",fmtG(doughTotals.salt), "#f59e0b"],
+            [dough.yeastType==="dry"?"Dry Yeast":"Fresh Yeast",fmtG(doughTotals.yeast),"#22c55e"],
+          ].map(([l,v,c]) => (
+            <div key={l} className="row-between" style={{padding:"6px 0",borderBottom:"1px solid #f1f5f9"}}>
+              <span className="mono" style={{fontSize:11,color:T2}}>{l}</span>
+              <span className="mono" style={{fontSize:12,color:c,fontWeight:500}}>{v}</span>
+            </div>
+          ))}
+          <div className="row-between" style={{marginTop:10}}>
+            <span className="mono" style={{fontSize:12,color:T2}}>Dough cost</span>
+            <span className="mono" style={{fontSize:16,color:A,fontWeight:700}}>{quid(doughCostTotal)}</span>
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+}
+
+function IngredientsTab({ ings, setIngs, ingTotals, ingMap }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [n, setN] = useState({name:"",unit:"g",purchaseQty:"",purchaseCost:""});
+
+  const add = () => {
+    if (!n.name.trim() || !n.purchaseQty || !n.purchaseCost) return;
+    setIngs(p => [...p,{...n,id:_iid++,purchaseQty:+n.purchaseQty,purchaseCost:+n.purchaseCost}]);
+    setN({name:"",unit:"g",purchaseQty:"",purchaseCost:""}); setShowAdd(false);
+  };
+  const upd = (id,f,v) => setIngs(p => p.map(i => i.id!==id?i:{...i,[f]:["name","unit"].includes(f)?v:+v}));
+  const del = (id) => setIngs(p => p.filter(i => i.id!==id));
+
+  return (
+    <div className="scroll-area fade-in">
+      <div className="row-between" style={{marginBottom:14}}>
+        <span className="mono" style={{fontSize:11,color:T3}}>Enter purchase quantity & cost — unit cost calculated automatically.</span>
+        <button className="btn btn-p btn-xs" style={{marginLeft:10,flexShrink:0}} onClick={() => setShowAdd(v=>!v)}>+ Add</button>
+      </div>
+
+      {showAdd && (
+        <div className="add-form slide-down">
+          <div className="mono" style={{fontSize:10,color:T2,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:12}}>New Ingredient</div>
+          <div style={{marginBottom:10}}>
+            <label className="label">Ingredient Name</label>
+            <input className="inp" placeholder="e.g. Buffalo Mozzarella" value={n.name}
+              onChange={e => setN(x=>({...x,name:e.target.value}))} />
+          </div>
+          <div className="grid-2" style={{marginBottom:10}}>
+            <div>
+              <label className="label">Unit</label>
+              <select className="inp" value={n.unit} onChange={e => setN(x=>({...x,unit:e.target.value}))}>
+                {UNITS.map(u=><option key={u}>{u}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Qty Bought</label>
+              <input className="inp" type="number" placeholder="250" value={n.purchaseQty}
+                onChange={e => setN(x=>({...x,purchaseQty:e.target.value}))} />
+            </div>
+          </div>
+          <div style={{marginBottom:12}}>
+            <label className="label">Cost Paid (£)</label>
+            <input className="inp" type="number" placeholder="4.50" step={0.01} value={n.purchaseCost}
+              onChange={e => setN(x=>({...x,purchaseCost:e.target.value}))} />
+          </div>
+          {n.purchaseQty && n.purchaseCost && (
+            <div className="mono" style={{fontSize:11,color:T2,marginBottom:12}}>
+              → <strong style={{color:A}}>£{(n.purchaseCost/n.purchaseQty).toFixed(4)} per {n.unit}</strong>
+            </div>
+          )}
+          <div className="row">
+            <button className="btn btn-p" onClick={add} style={{flex:1}}>Add Ingredient</button>
+            <button className="btn btn-g" onClick={() => setShowAdd(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {ings.map(ing => {
+        const uc = ing.purchaseQty > 0 ? ing.purchaseCost / ing.purchaseQty : 0;
+        const usedQty = ingTotals[ing.id] || 0;
+        return (
+          <div key={ing.id} className="card" style={{padding:"14px"}}>
+            <div className="row-between" style={{marginBottom:10}}>
+              <input className="inp" value={ing.name} style={{fontSize:14,fontWeight:500,flex:1,marginRight:10}}
+                onChange={e => upd(ing.id,"name",e.target.value)} />
+              <button className="btn btn-d btn-xs" onClick={() => del(ing.id)}>✕</button>
+            </div>
+            <div className="grid-2" style={{marginBottom:10}}>
+              <div>
+                <label className="label">Unit</label>
+                <select className="inp" value={ing.unit} onChange={e => upd(ing.id,"unit",e.target.value)}>
+                  {UNITS.map(u=><option key={u}>{u}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label">Qty Bought</label>
+                <input className="inp" type="number" value={ing.purchaseQty}
+                  onChange={e => upd(ing.id,"purchaseQty",e.target.value)} />
+              </div>
+            </div>
+            <div style={{marginBottom:10}}>
+              <label className="label">Cost Paid (£)</label>
+              <input className="inp" type="number" value={ing.purchaseCost} step={0.01}
+                onChange={e => upd(ing.id,"purchaseCost",e.target.value)} />
+            </div>
+            <div className="row-between">
+              <span className="cpu-badge">£{uc.toFixed(4)} / {ing.unit}</span>
+              {usedQty > 0 && (
+                <span className="mono" style={{fontSize:11,color:T2}}>
+                  Used: {fmt(usedQty)} {ing.unit} · {quid(usedQty*uc)}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      {ings.length===0 && <div className="mono" style={{textAlign:"center",padding:30,color:T3}}>No ingredients yet.</div>}
+    </div>
+  );
+}
+
+function PizzasTab({ pizzas, setPizzas, ings, ingMap, doughCostPerPizza, toppingCostForPizza }) {
+  const [expandPz, setExpandPz] = useState(null);
+  const [showAdd, setShowAdd]   = useState(false);
+  const [name, setName]         = useState("");
+
+  const add = () => { if (!name.trim()) return; const id=_pid++; setPizzas(p=>[...p,{id,name:name.trim(),count:1,toppings:[]}]); setName(""); setShowAdd(false); setExpandPz(id); };
+  const del = id => { setPizzas(p=>p.filter(pz=>pz.id!==id)); if(expandPz===id)setExpandPz(null); };
+  const setCount  = (id,v) => setPizzas(p=>p.map(pz=>pz.id===id?{...pz,count:Math.max(0,+v||0)}:pz));
+  const rename    = (id,n) => setPizzas(p=>p.map(pz=>pz.id===id?{...pz,name:n}:pz));
+  const toggleTop = (pzId,ingId) => setPizzas(p=>p.map(pz=>{if(pz.id!==pzId)return pz;const has=pz.toppings.find(t=>t.iid===ingId);return{...pz,toppings:has?pz.toppings.filter(t=>t.iid!==ingId):[...pz.toppings,{iid:ingId,qty:0}]};}));
+  const setTQty   = (pzId,ingId,qty) => setPizzas(p=>p.map(pz=>pz.id!==pzId?pz:{...pz,toppings:pz.toppings.map(t=>t.iid===ingId?{...t,qty:+qty}:t)}));
+
+  return (
+    <div className="scroll-area fade-in">
+      <div className="row-between" style={{marginBottom:14}}>
+        <div className="section-title" style={{marginBottom:0}}>Pizza Types</div>
+        <button className="btn btn-p btn-xs" onClick={() => setShowAdd(v=>!v)}>+ New Pizza</button>
+      </div>
+
+      {showAdd && (
+        <div className="add-form slide-down">
+          <label className="label">Pizza Name</label>
+          <div className="row">
+            <input className="inp" placeholder="e.g. Marinara…" value={name}
+              onChange={e => setName(e.target.value)} onKeyDown={e => e.key==="Enter"&&add()} />
+            <button className="btn btn-p" onClick={add}>Add</button>
+            <button className="btn btn-g btn-xs" onClick={() => setShowAdd(false)}>✕</button>
+          </div>
+        </div>
+      )}
+
+      {pizzas.map(pizza => {
+        const isOpen = expandPz === pizza.id;
+        const tCost  = toppingCostForPizza(pizza);
+        const cpp    = doughCostPerPizza + tCost;
+        return (
+          <div key={pizza.id} className={`pizza-card ${isOpen?"open":""}`}>
+            <div className="pizza-header" onClick={() => setExpandPz(isOpen?null:pizza.id)}>
+              <span className="mono" style={{fontSize:18,color:T3,width:20}}>{isOpen?"▾":"▸"}</span>
+              <div style={{flex:1}}>
+                <input className="inp" value={pizza.name}
+                  style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:700,background:"transparent",border:"none",padding:0,color:T,width:"100%"}}
+                  onChange={e=>{e.stopPropagation();rename(pizza.id,e.target.value);}} onClick={e=>e.stopPropagation()} />
+              </div>
+              <button className="btn btn-d btn-xs" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();del(pizza.id);}}>✕</button>
+            </div>
+
+            {/* Count + cost bar */}
+            <div style={{background:"#f8fafc",padding:"10px 14px",borderTop:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:10}}>
+              <span className="mono" style={{fontSize:10,color:T3}}>QTY</span>
+              <button className="btn btn-g btn-xs" style={{padding:"6px 14px",fontSize:18}} onClick={e=>{e.stopPropagation();setCount(pizza.id,pizza.count-1);}}>−</button>
+              <input className="inp" type="number" value={pizza.count}
+                style={{width:58,textAlign:"center",fontSize:16,fontWeight:700}}
+                onChange={e=>setCount(pizza.id,e.target.value)} onClick={e=>e.stopPropagation()} />
+              <button className="btn btn-g btn-xs" style={{padding:"6px 14px",fontSize:18}} onClick={e=>{e.stopPropagation();setCount(pizza.id,pizza.count+1);}}>+</button>
+              <div style={{flex:1,textAlign:"right"}}>
+                <div className="mono" style={{fontSize:13,color:A,fontWeight:600}}>{quid(cpp)} / ea</div>
+                <div className="mono" style={{fontSize:10,color:T3}}>{pizza.count>0?`${quid(cpp*pizza.count)} total`:"0 pizzas"}</div>
+              </div>
+            </div>
+
+            {isOpen && (
+              <div className="slide-down" style={{background:"#fafbfc",padding:"12px 14px",borderTop:"1px solid #f1f5f9"}}>
+                <div className="mono" style={{fontSize:9,color:T3,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10}}>Toppings per pizza</div>
+                {ings.length===0 && <div className="mono" style={{fontSize:12,color:T3}}>Add ingredients first.</div>}
+                {ings.map(ing => {
+                  const entry = pizza.toppings.find(t=>t.iid===ing.id);
+                  const checked = !!entry;
+                  const uc = ing.purchaseQty>0?ing.purchaseCost/ing.purchaseQty:0;
+                  return (
+                    <div key={ing.id} style={{paddingBottom:10,marginBottom:10,borderBottom:"1px solid #f1f5f9"}}>
+                      <div className="row" style={{marginBottom:checked?8:0}}>
+                        <input type="checkbox" checked={checked} onChange={()=>toggleTop(pizza.id,ing.id)} />
+                        <span className="mono" style={{fontSize:13,color:checked?T:T3,flex:1}}>{ing.name}</span>
+                      </div>
+                      {checked && (
+                        <div className="row" style={{paddingLeft:26}}>
+                          <input className="inp" type="number" value={entry.qty} style={{width:80}}
+                            onChange={e=>setTQty(pizza.id,ing.id,e.target.value)} />
+                          <span className="mono" style={{fontSize:11,color:T3}}>{ing.unit}</span>
+                          <span className="mono" style={{fontSize:11,color:T2,marginLeft:"auto"}}>{quid(uc*entry.qty)} / ea</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {pizza.toppings.length>0 && (
+                  <div className="row-between" style={{marginTop:4}}>
+                    <span className="mono" style={{fontSize:11,color:T2}}>Toppings: <strong style={{color:A}}>{quid(tCost)}</strong></span>
+                    <span className="mono" style={{fontSize:11,color:T2}}>Total/ea: <strong style={{color:A}}>{quid(cpp)}</strong></span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {pizzas.length===0 && <div className="mono" style={{textAlign:"center",padding:30,color:T3}}>No pizzas added yet.</div>}
+    </div>
+  );
+}
+
+function ShoppingTab({ dough, dpb, doughTotals, doughCostTotal, doughCostPerPizza, ings, ingTotals, ingMap, pizzas, toppingCostForPizza, toppingsTotalCost, grandTotal, avgCpp, totalPizzas }) {
+  return (
+    <div className="scroll-area fade-in">
+
+      {/* Summary chips */}
+      <div className="card-dark" style={{marginBottom:14}}>
+        <div className="grid-2" style={{gap:8,marginBottom:14}}>
+          {[
+            {label:"Total Pizzas", val:totalPizzas},
+            {label:"Ball Weight",  val:`${dough.ballSize}g`},
+            {label:"Hydration",    val:`${dough.hydration}%`},
+            {label:"Pizza Types",  val:pizzas.length},
+          ].map(({label,val})=>(
+            <div key={label} className="stat-box">
+              <div className="mono" style={{fontSize:9,color:T3}}>{label}</div>
+              <div className="mono" style={{fontSize:16,color:T,fontWeight:500,marginTop:3}}>{val}</div>
+            </div>
+          ))}
+        </div>
+        <div className="divider" />
+        {[["Dough",doughCostTotal],["Toppings",toppingsTotalCost]].map(([l,v])=>(
+          <div key={l} className="row-between" style={{marginBottom:8}}>
+            <span className="mono" style={{fontSize:12,color:T2}}>{l}</span>
+            <span className="mono" style={{fontSize:13,color:T}}>{quid(v)}</span>
+          </div>
+        ))}
+        <div className="divider" />
+        <div className="row-between" style={{marginBottom:4}}>
+          <span className="mono" style={{fontSize:14,color:A,fontWeight:600}}>Grand Total</span>
+          <span className="mono" style={{fontSize:26,color:A,fontWeight:700,lineHeight:1}}>{quid(grandTotal)}</span>
+        </div>
+        <div className="row-between">
+          <span className="mono" style={{fontSize:11,color:T3}}>Avg per pizza</span>
+          <span className="mono" style={{fontSize:15,color:T,fontWeight:500}}>{quid(avgCpp)}</span>
+        </div>
+        {grandTotal>0 && (
+          <div style={{marginTop:14}}>
+            <div className="bar-track" style={{height:8,borderRadius:4}}>
+              <div className="bar-fill" style={{width:`${(doughCostTotal/grandTotal)*100}%`,background:"#94a3b8"}} />
+            </div>
+            <div className="row-between" style={{marginTop:4}}>
+              <span className="mono" style={{fontSize:9,color:T3}}>■ Dough {Math.round((doughCostTotal/grandTotal)*100)}%</span>
+              <span className="mono" style={{fontSize:9,color:A}}>Toppings {Math.round((toppingsTotalCost/grandTotal)*100)}% ■</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Dough */}
+      <div className="card">
+        <div className="section-title">🫓 Dough</div>
+        <div className="mono" style={{fontSize:10,color:T3,marginBottom:10}}>{totalPizzas} balls × {dough.ballSize}g</div>
+        {[
+          {label:"00 Flour",  perBall:dpb.flour, total:doughTotals.flour, cost:doughTotals.flour*(dough.flourCost/1000)},
+          {label:"Water",     perBall:dpb.water, total:doughTotals.water, cost:0},
+          {label:"Sea Salt",  perBall:dpb.salt,  total:doughTotals.salt,  cost:doughTotals.salt*(dough.saltCost/1000)},
+          {label:dough.yeastType==="dry"?"Dry Yeast":"Fresh Yeast",perBall:dpb.yeast,total:doughTotals.yeast,cost:doughTotals.yeast*(dough.yeastCost/100)},
+        ].map(row=>(
+          <div key={row.label} className="shopping-row">
+            <div className="row-between" style={{marginBottom:4}}>
+              <span className="mono" style={{fontSize:13,color:T,fontWeight:500}}>{row.label}</span>
+              <span className="mono" style={{fontSize:14,color:T,fontWeight:600}}>{fmtG(row.total)}</span>
+            </div>
+            <div className="row-between">
+              <span className="mono" style={{fontSize:10,color:T3}}>{fmtG(row.perBall)} per ball</span>
+              <span className="mono" style={{fontSize:11,color:T2}}>{row.cost>0?quid(row.cost):"—"}</span>
+            </div>
+          </div>
+        ))}
+        <div className="row-between" style={{padding:"10px 14px 0",borderTop:"1px solid #f1f5f9",marginTop:4}}>
+          <span className="mono" style={{fontSize:12,color:T2}}>Dough total</span>
+          <span className="mono" style={{fontSize:15,color:A,fontWeight:700}}>{quid(doughCostTotal)}</span>
+        </div>
+      </div>
+
+      {/* Toppings */}
+      <div className="card">
+        <div className="section-title">🧀 Toppings</div>
+        {Object.keys(ingTotals).length===0
+          ? <div className="mono" style={{fontSize:12,color:T3}}>No toppings assigned yet.</div>
+          : <>
+            {ings.filter(ing=>ingTotals[ing.id]>0).map(ing=>{
+              const qty=ingTotals[ing.id]||0;
+              const uc=ing.purchaseQty>0?ing.purchaseCost/ing.purchaseQty:0;
+              return (
+                <div key={ing.id} className="shopping-row">
+                  <div className="row-between" style={{marginBottom:4}}>
+                    <span className="mono" style={{fontSize:13,color:T,fontWeight:500}}>{ing.name}</span>
+                    <span className="mono" style={{fontSize:14,color:T,fontWeight:600}}>{fmt(qty)} {ing.unit}</span>
+                  </div>
+                  <div className="row-between">
+                    <span className="mono" style={{fontSize:10,color:T3}}>£{uc.toFixed(4)} / {ing.unit}</span>
+                    <span className="mono" style={{fontSize:12,color:A,fontWeight:500}}>{quid(qty*uc)}</span>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="row-between" style={{padding:"10px 14px 0",borderTop:"1px solid #f1f5f9",marginTop:4}}>
+              <span className="mono" style={{fontSize:12,color:T2}}>Toppings total</span>
+              <span className="mono" style={{fontSize:15,color:A,fontWeight:700}}>{quid(toppingsTotalCost)}</span>
+            </div>
+          </>}
+      </div>
+
+      {/* Per type */}
+      {pizzas.length>0 && (
+        <div className="card">
+          <div className="section-title">🍕 Per Pizza Type</div>
+          {pizzas.map(pizza=>{
+            const tCpp=toppingCostForPizza(pizza);
+            const perEa=doughCostPerPizza+tCpp;
+            return (
+              <div key={pizza.id} className="shopping-row">
+                <div className="row-between" style={{marginBottom:4}}>
+                  <span className="serif" style={{fontSize:14,fontWeight:700,color:T}}>{pizza.name}</span>
+                  <span className="mono" style={{fontSize:14,color:A,fontWeight:700}}>×{pizza.count} = {quid(perEa*pizza.count)}</span>
+                </div>
+                <div className="row-between">
+                  <span className="mono" style={{fontSize:10,color:T3}}>Dough {quid(doughCostPerPizza)} · Toppings {quid(tCpp)}</span>
+                  <span className="mono" style={{fontSize:11,color:T2}}>{quid(perEa)} / ea</span>
+                </div>
+              </div>
+            );
+          })}
+          <div className="row-between" style={{padding:"10px 14px 0",borderTop:"1px solid #f1f5f9",marginTop:4}}>
+            <span className="mono" style={{fontSize:13,color:A,fontWeight:600}}>Grand Total</span>
+            <span className="mono" style={{fontSize:20,color:A,fontWeight:700}}>{quid(grandTotal)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+function App() {
+  const [tab,    setTab]    = useState("dough");
+  const [dough,  setDough]  = useState(INIT_DOUGH);
+  const [ings,   setIngs]   = useState(INIT_INGS);
+  const [pizzas, setPizzas] = useState(INIT_PIZZAS);
+
+  const dpb = useMemo(() => calcDoughPerBall(dough), [dough]);
+  const totalPizzas = useMemo(() => pizzas.reduce((s,p)=>s+Math.max(0,+p.count||0),0),[pizzas]);
+  const doughTotals = useMemo(() => ({
+    flour:dpb.flour*totalPizzas, water:dpb.water*totalPizzas,
+    salt:dpb.salt*totalPizzas,   yeast:dpb.yeast*totalPizzas,
+  }), [dpb,totalPizzas]);
+  const doughCostTotal = useMemo(() =>
+    doughTotals.flour*(dough.flourCost/1000) +
+    doughTotals.salt*(dough.saltCost/1000) +
+    doughTotals.yeast*(dough.yeastCost/100),
+  [doughTotals,dough]);
+  const doughCostPerPizza = totalPizzas>0?doughCostTotal/totalPizzas:0;
+
+  const ingMap = useMemo(() =>
+    Object.fromEntries(ings.map(i=>[i.id,{...i,unitCost:i.purchaseQty>0?i.purchaseCost/i.purchaseQty:0}])),
+  [ings]);
+
+  const ingTotals = useMemo(() => {
+    const t={};
+    pizzas.forEach(p=>{
+      const cnt=Math.max(0,+p.count||0);
+      p.toppings.forEach(tp=>{t[tp.iid]=(t[tp.iid]||0)+tp.qty*cnt;});
+    });
+    return t;
+  },[pizzas]);
+
+  const toppingCostForPizza = useCallback((pizza) =>
+    pizza.toppings.reduce((s,tp)=>{const i=ingMap[tp.iid];return i?s+tp.qty*i.unitCost:s;},0),
+  [ingMap]);
+
+  const toppingsTotalCost = useMemo(() =>
+    Object.entries(ingTotals).reduce((s,[id,qty])=>{const i=ingMap[+id];return i?s+qty*i.unitCost:s;},0),
+  [ingTotals,ingMap]);
+
+  const grandTotal = doughCostTotal + toppingsTotalCost;
+  const avgCpp     = totalPizzas>0?grandTotal/totalPizzas:0;
+
+  const TABS = [
+    { id:"dough",       icon:"🫓", label:"Dough" },
+    { id:"ingredients", icon:"🧀", label:"Ingredients" },
+    { id:"pizzas",      icon:"🍕", label:"Pizzas" },
+    { id:"shopping",    icon:"📋", label:"List" },
+  ];
+
+  return (
+    <div style={{height:"100vh",display:"flex",flexDirection:"column",background:"#f7f8fa"}}>
+      {/* Header */}
+      <div className="header">
+        <div className="header-top">
+          <div>
+            <div className="serif" style={{fontSize:22,fontWeight:900,color:T,lineHeight:1}}>🍕 South Coast Pizzas</div>
+            <div className="mono" style={{fontSize:8,color:A,letterSpacing:"0.28em",marginTop:4}}>SERVICE CALCULATOR</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div className="mono" style={{fontSize:9,color:T3,letterSpacing:"0.1em"}}>TOTAL COST</div>
+            <div className="serif" style={{fontSize:24,fontWeight:700,color:A,lineHeight:1.1}}>{quid(grandTotal)}</div>
+          </div>
+        </div>
+        <div className="header-stats">
+          {[
+            {label:"Pizzas",    val:totalPizzas},
+            {label:"Avg/ea",    val:quid(avgCpp)},
+            {label:"Hydration", val:`${dough.hydration}%`},
+            {label:"Ball",      val:`${dough.ballSize}g`},
+          ].map(({label,val})=>(
+            <div key={label} className="stat-chip">
+              <div className="mono" style={{fontSize:8,color:T3,textTransform:"uppercase",letterSpacing:"0.1em"}}>{label}</div>
+              <div className="mono" style={{fontSize:13,color:T,fontWeight:500}}>{val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{flex:1,overflow:"hidden",position:"relative"}}>
+        {tab==="dough" && <DoughTab dough={dough} setDough={setDough} dpb={dpb} doughTotals={doughTotals} doughCostTotal={doughCostTotal} doughCostPerPizza={doughCostPerPizza} totalPizzas={totalPizzas} />}
+        {tab==="ingredients" && <IngredientsTab ings={ings} setIngs={setIngs} ingTotals={ingTotals} ingMap={ingMap} />}
+        {tab==="pizzas" && <PizzasTab pizzas={pizzas} setPizzas={setPizzas} ings={ings} ingMap={ingMap} doughCostPerPizza={doughCostPerPizza} toppingCostForPizza={toppingCostForPizza} />}
+        {tab==="shopping" && <ShoppingTab dough={dough} dpb={dpb} doughTotals={doughTotals} doughCostTotal={doughCostTotal} doughCostPerPizza={doughCostPerPizza} ings={ings} ingTotals={ingTotals} ingMap={ingMap} pizzas={pizzas} toppingCostForPizza={toppingCostForPizza} toppingsTotalCost={toppingsTotalCost} grandTotal={grandTotal} avgCpp={avgCpp} totalPizzas={totalPizzas} />}
+      </div>
+
+      {/* Bottom tab bar */}
+      <div className="tab-bar">
+        {TABS.map(({id,icon,label})=>(
+          <button key={id} className={`tab-btn ${tab===id?"active":""}`} onClick={()=>setTab(id)}>
+            <span className="tab-icon">{icon}</span>
+            <span className="tab-label">{label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(r => console.log("SW registered:", r.scope))
+      .catch(e => console.log("SW failed:", e));
+  });
+}
+</script>
+</body>
+</html>
